@@ -1,21 +1,20 @@
-from view.monitor_gui import MonitorGuiView
+from form.monitor_main_form import MonitorMainForm
 from service.car_data_service import CarDataService
 
-
-
 class MonitorController:
-    """控制器：串联view、各个service；主业务调度，相当于Java Controller"""
     def __init__(self, root):
-        self.view = MonitorGuiView(root)
-        self.car_data_service = CarDataService()
+        self.ui_form = MonitorMainForm(root)
+        self.data_service = CarDataService()
         self.root = root
+        self.interval_ms = 800  # 每隔800毫秒生成一条模拟车辆数据
 
-    def loop_refresh(self):
-        # 1.模拟获取车辆数据
-        car_dto = self.car_data_service.mock_fetch_car_data()
-        # 2.更新GUI窗体
-        self.view.set_display_data(car_dto)
-        # 3.【模拟从窗体取数】读取窗体UI文本，解析DTO
-        ui_text = self.view.get_ui_text_dict()
-        read_dto = self.car_data_service.parse_from_ui_text(ui_text)
+    def loop_fetch_data(self):
+        """定时循环：生成数据 ->业务处理 ->追加到窗体表格"""
+        car_dto = self.data_service.generate_mock_car_data()
+        handled_dto = self.data_service.filter_and_handle_data(car_dto)
+        self.ui_form.append_one_row(handled_dto)
+        # 继续下一次定时任务
+        self.root.after(self.interval_ms, self.loop_fetch_data)
 
+    def start(self):
+        self.loop_fetch_data()
